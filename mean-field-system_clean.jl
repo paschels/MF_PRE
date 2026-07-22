@@ -18,30 +18,37 @@ net = STDPNetwork_lim(N = 5000, tmax = 500., dt = 5e-2, m_s=15)
 # This sets up the initial state of neurons, weights, and distributions
 CI = @time cond_initiales(net);
 
+# Important: CI is modified in-place, so we need to pass a copy to preserve original state
+# Run mean-field simulation
+result_MF = simu_traj_MF!(net, deepcopy(CI); verbose = false)
+# Run particle-based simulation for comparison
+result_particle = simu_traj_particle!(net, deepcopy(CI))
 
+using JLD2
+save("resultats-MF-part-vs-limit-0-500ms_ms15_N5000.jld2", "result_MF", result_MF, "result_particle", result_particle)
 
 ######################################################################
 # Expectation trajectories: particle system vs mean-field
 ######################################################################
 # E[V_t]: mean membrane potential
-plot(result_particle.times, result_particle.Esp_V_part, label=L"\bar{V}_t^{N}", legend=:bottomright)
-	plot!(result_MF.times, result_MF.Esp_V, label=L"\bar{V}_t^{*}")
-	plot!(result_MF.times, result_MF.Esp_V_xi, label=L"\bar{\xi}_t^{*}(\ \cdot , \mathbb{R}^+ , \mathbb{Z})]",
+plot(result_particle.times, result_particle.Esp_V_part, label=L"\overline{V_t^{N}}", legend=:bottomright)
+	plot!(result_MF.times, result_MF.Esp_V, label=L"\overline{V_t^{*}}")
+	plot!(result_MF.times, result_MF.Esp_V_xi, label=L"\mathbb{E}[\overline{\xi_t^{*}}(\ \cdot , \mathbb{R}^+ , \mathbb{Z})]",
       xlabel=L"time\ (ms)", ylabel=L"potential")
-#savefig("../images-svg/esperance-V-final-500ms.svg")
+savefig("../MF_PRE/images-svg/esperance-V-final-500ms.svg")
 
 # E[S_t]: mean time since last spike
-plot(result_particle.times, result_particle.Esp_S_part, label=L"\bar{S}_t^{N}")
-	plot!(result_MF.times, result_MF.Esp_S, label=L"\bar{S}_t^{*}")
-	plot!(result_MF.times, result_MF.Esp_S_xi, label=L"\bar{\xi}_t^{*}(\{0,1\},\cdot , \mathbb{Z})",
+plot(result_particle.times, result_particle.Esp_S_part, label=L"\overline{S_t^{N}}")
+	plot!(result_MF.times, result_MF.Esp_S, label=L"\overline{S_t^{*}}")
+	plot!(result_MF.times, result_MF.Esp_S_xi, label=L"\mathbb{E}[\overline{\xi_t^{*}}(\{0,1\},\cdot , \mathbb{Z})]",
       xlabel=L"time\ (ms)", ylabel=L"ms")
-#savefig("../images-svg/esperance-S-final-500ms.svg")
+savefig("../MF_PRE/images-svg/esperance-S-final-500ms.svg")
 
 # E[W_t]: mean synaptic weight
-plot(result_particle.times, result_particle.Esp_W_part, label=L"\bar{W}_t^{N}")
-	plot!(0:net.dt:net.tmax-net.dt, result_MF.Esp_W_xi, label=L"\bar{\xi}_t^{*}(\{0,1\}, \mathbb{R}^+ , \cdot)",
+plot(result_particle.times, result_particle.Esp_W_part, label=L"\overline{W_t^{N}}")
+	plot!(0:net.dt:net.tmax-net.dt, result_MF.Esp_W_xi, label=L"\mathbb{E}[\overline{\xi_t^{*}}(\{0,1\}, \mathbb{R}^+ , \cdot)]",
       xlabel=L"time\ (ms)", ylabel=L"weight", legend=:bottomright)
-#savefig("../images-svg/esperance-W-final-500ms.svg")
+savefig("../MF_PRE/images-svg/esperance-W-final-500ms.svg")
 
 
 ######################################################################
@@ -51,7 +58,7 @@ plot(result_particle.times, result_particle.Esp_W_part, label=L"\bar{W}_t^{N}")
 histogram(result_particle.I_t_part, label=L"\hat{P}^N_{I^N}", normed=true, nbins=100, linetype = :stephist)
 	histogram!(result_MF.I_t, label=L"\hat{P}^N_{I^*}", normed=true, nbins=100, linetype = :stephist,
            xlabel=L"synaptic\ current", ylabel=L"density\ function", legend=:top)
-#savefig("../images-svg/distribution-I-final-500ms.svg")
+savefig("../MF_PRE/images-svg/distribution-I-final-500ms.svg")
 
 ######################################################################
 # Distribution comparisons: time since last spike (S), split by state V
@@ -71,7 +78,7 @@ begin
           xlabel=L"ms", ylabel=L"density\ function",
           label=L"\xi_{t}^{i,*}(0, \cdot, \mathbb{Z})")
 end
-#savefig("../images-svg/distribution-S-final-V0-500ms.svg")
+savefig("../MF_PRE/images-svg/distribution-S-final-V0-500ms.svg")
 
 # Active neurons (V = 1)
 begin
@@ -87,7 +94,7 @@ begin
           xlabel=L"ms", ylabel=L"density\ function",
           label=L"\xi_{t}^{i,*}(1, \cdot, \mathbb{Z})", xlims = (0, 8))
 end
-#savefig("../images-svg/distribution-S-final-V1-500ms.svg")
+savefig("../MF_PRE/images-svg/distribution-S-final-V1-500ms.svg")
 
 ######################################################################
 # Analysis of the firing-rate approximation a_t^0, recomputed directly
